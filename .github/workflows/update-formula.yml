@@ -1,0 +1,43 @@
+name: update-formula
+
+# 每次 dev-cli 发版后，把 formula 更新到最新版本。
+#
+# 学习点（为什么不靠 dev-cli 那边推）：跨仓写入需要 PAT/App 令牌，而默认 GITHUB_TOKEN
+# 只能写当前仓。改成这边主动拉 —— dev-cli 是公开仓，API 免鉴权，**零额外凭据**。
+on:
+  # 主路径：**每小时轮询**。
+  #
+  # 学习点（为什么不用 repository_dispatch）：跨仓触发需要 PAT / GitHub App 令牌
+  # （默认 GITHUB_TOKEN 只能写当前仓）。而 dev-cli 是公开仓、API 免鉴权 ——
+  # 用轮询就把"自动更新"做到了**零额外凭据**，代价是最多晚一小时。
+  schedule:
+    - cron: "23 * * * *"
+  # 想立刻更新时手动触发（或用带权限的令牌发 repository_dispatch）。
+  repository_dispatch:
+    types: [dev-cli-released]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 重新生成 formula
+        run: bash scripts/update-formula.sh
+
+      - name: 提交（无变化则跳过）
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- Formula/; then
+            echo "formula 已是最新，无需提交"
+            exit 0
+          fi
+          version=$(grep -m1 '^  version' Formula/dev-cli.rb | sed -E 's/.*"(.*)".*/\1/')
+          git add Formula/
+          git commit -m "chore(dev-cli): 更新到 v${version}"
+          git push

@@ -1,6 +1,7 @@
 name: update-formula
 
-# 每次 dev-cli 发版后，把 formula 更新到最新版本。
+# 每次 dev-cli 发版后（主仓发布流水线把二进制同步到公开仓 developstack/dev-cli 的 Release v<semver>），
+# 把 formula 更新到最新版本。
 #
 # 学习点（为什么不靠 dev-cli 那边推）：跨仓写入需要 PAT/App 令牌，而默认 GITHUB_TOKEN
 # 只能写当前仓。改成这边主动拉 —— dev-cli 是公开仓，API 免鉴权，**零额外凭据**。
